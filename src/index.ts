@@ -6,6 +6,7 @@ import {
   createSet,
   ensurePlayer,
   findActiveSetForUser,
+  getSetCount,
   getPlayer,
   nowSec,
   openDb,
@@ -239,6 +240,66 @@ client.on(Events.MessageCreate, async (msg) => {
       ensurePlayer(db, guildId, targetId, DEFAULT_RATING, ts);
       const p = getPlayer(db, guildId, targetId)!;
       await msg.reply(`${mention(targetId)} rating: ${p.rating} (W-L ${p.wins}-${p.losses}, sets ${p.games_played})`);
+      return;
+    }
+
+    if (parsed.cmd === "setcount") {
+      const args = parsed.rest.trim() ? parsed.rest.trim().split(/\s+/) : [];
+      if (args.length === 0 || args.length > 2) {
+        await msg.reply(`usage: ${PREFIX}setcount <player> OR ${PREFIX}setcount <player1> <player2>`);
+        return;
+      }
+
+      let player1Id = authorId;
+      let player2Id = "";
+
+      if (args.length === 1) {
+        const target = await resolveMember(msg.guild, args[0]);
+        if (!target) {
+          await msg.reply(`no match for "${args[0]}" (try @mention)`);
+          return;
+        }
+        if ("ambiguous" in target) {
+          const opts = target.ambiguous
+            .map((m) => `${m.user.username}${m.nickname ? ` (nick: ${m.nickname})` : ""}`)
+            .join(", ");
+          await msg.reply(`ambiguous "${args[0]}". matches: ${opts}. try @mention or be more specific.`);
+          return;
+        }
+        player2Id = target.id;
+      } else {
+        const p1 = await resolveMember(msg.guild, args[0]);
+        if (!p1) {
+          await msg.reply(`no match for "${args[0]}" (try @mention)`);
+          return;
+        }
+        if ("ambiguous" in p1) {
+          const opts = p1.ambiguous
+            .map((m) => `${m.user.username}${m.nickname ? ` (nick: ${m.nickname})` : ""}`)
+            .join(", ");
+          await msg.reply(`ambiguous "${args[0]}". matches: ${opts}. try @mention or be more specific.`);
+          return;
+        }
+
+        const p2 = await resolveMember(msg.guild, args[1]);
+        if (!p2) {
+          await msg.reply(`no match for "${args[1]}" (try @mention)`);
+          return;
+        }
+        if ("ambiguous" in p2) {
+          const opts = p2.ambiguous
+            .map((m) => `${m.user.username}${m.nickname ? ` (nick: ${m.nickname})` : ""}`)
+            .join(", ");
+          await msg.reply(`ambiguous "${args[1]}". matches: ${opts}. try @mention or be more specific.`);
+          return;
+        }
+
+        player1Id = p1.id;
+        player2Id = p2.id;
+      }
+
+      const record = getSetCount(db, guildId, player1Id, player2Id);
+      await msg.reply(`${mention(player1Id)} vs ${mention(player2Id)} set history (W-L): ${record.wins}-${record.losses}`);
       return;
     }
   } catch (err) {

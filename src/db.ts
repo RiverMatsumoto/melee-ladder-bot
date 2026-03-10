@@ -96,3 +96,27 @@ export function createSet(
 
   return Number(info.lastInsertRowid);
 }
+
+export function getSetCount(
+  db: Database.Database,
+  guildId: string,
+  player1Id: string,
+  player2Id: string,
+) {
+  const row = db
+    .prepare(`
+      SELECT
+        COALESCE(SUM(CASE WHEN winner_id=@p1 THEN 1 ELSE 0 END), 0) AS wins,
+        COALESCE(SUM(CASE WHEN winner_id=@p2 THEN 1 ELSE 0 END), 0) AS losses
+      FROM sets
+      WHERE guild_id=@g
+        AND status='resolved'
+        AND (
+          (p1_id=@p1 AND p2_id=@p2) OR
+          (p1_id=@p2 AND p2_id=@p1)
+        )
+    `)
+    .get({ g: guildId, p1: player1Id, p2: player2Id }) as { wins: number; losses: number };
+
+  return { wins: row.wins, losses: row.losses };
+}
