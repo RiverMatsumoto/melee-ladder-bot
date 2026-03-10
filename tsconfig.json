@@ -6,7 +6,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "dist",
+    "rootDir": "src",
+    "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "src/schema.sql"]
+  "include": ["src/**/*.ts"]
 }
